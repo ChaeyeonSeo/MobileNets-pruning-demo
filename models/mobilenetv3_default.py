@@ -24,28 +24,6 @@ class H_swish(nn.Module):
         return x * F.relu6(x + 3) / 6
 
 
-class SEModule(nn.Module):
-    def __init__(self, in_channels_num, reduction_ratio=4):
-        super(SEModule, self).__init__()
-
-        if in_channels_num % reduction_ratio != 0:
-            raise ValueError('in_channels_num must be divisible by reduction_ratio(default = 4)')
-
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(in_channels_num, in_channels_num // reduction_ratio, bias=False),
-            nn.ReLU(),
-            nn.Linear(in_channels_num // reduction_ratio, in_channels_num, bias=False),
-            H_sigmoid()
-        )
-
-    def forward(self, x):
-        batch_size, channel_num, _, _ = x.size()
-        y = self.avg_pool(x).view(batch_size, channel_num)
-        y = self.fc(y).view(batch_size, channel_num, 1, 1)
-        return x * y
-
-
 class Block(nn.Module):
     def __init__(self, in_planes, exp_size, out_planes, kernel_size, stride, use_SE, NL):
         super(Block, self).__init__()
@@ -55,6 +33,8 @@ class Block(nn.Module):
         self.exp_size = exp_size
         self.in_planes = in_planes
         self.stride = stride
+        self.reduction_ratio = 4
+        self.use_SE = use_SE
 
         # Expansion
         self.conv1 = nn.Conv2d(in_planes, exp_size, kernel_size=1, stride=1, padding=0, bias=False)
@@ -62,6 +42,7 @@ class Block(nn.Module):
         self.nl1 = nn.ReLU()  # non-linearity
         if use_HS:
             self.nl1 = H_swish()
+
         # Depthwise Convolution
         self.conv2 = nn.Conv2d(exp_size, exp_size, kernel_size=kernel_size, stride=stride,
                                padding=(kernel_size - 1) // 2, groups=exp_size, bias=False)
@@ -69,9 +50,15 @@ class Block(nn.Module):
         self.nl2 = nn.ReLU()  # non-linearity
         if use_HS:
             self.nl2 = H_swish()
-        self.se = nn.Sequential()  # SE module
+
+        # Squeeze-and-Excite
         if use_SE:
-            self.se = SEModule(exp_size)
+            self.se_avg_pool = nn.AdaptiveAvgPool2d(1)
+            self.se_linear1 = nn.Linear(exp_size, exp_size // self.reduction_ratio, bias=False)
+            self.se_nl1 = nn.ReLU()
+            self.se_linear2 = nn.Linear(exp_size // self.reduction_ratio, exp_size, bias=False)
+            self.se_nl2 = H_sigmoid()
+
         # Linear Pointwise Convolution
         self.conv3 = nn.Conv2d(exp_size, out_planes, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(out_planes)
@@ -85,7 +72,14 @@ class Block(nn.Module):
     def forward(self, x, expand=False):
         out = self.nl1(self.bn1(self.conv1(x)))
         out = self.nl2(self.bn2(self.conv2(out)))
-        out = self.se(out)
+        # SE
+        if self.use_SE:
+            batch_size, channel_num, _, _ = out.size()
+            out_se = self.se_avg_pool(out).view(batch_size, channel_num)
+            out_se = self.se_nl1(self.se_linear1(out_se))
+            out_se = self.se_nl2(self.se_linear2(out_se))
+            out_se = self.fc(out_se).view(batch_size, channel_num, 1, 1)
+            out = out*out_se
         out = self.bn3(self.conv3(out))
         out = out + self.shortcut(x) if self.stride == 1 else out
         return out

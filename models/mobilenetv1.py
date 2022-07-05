@@ -40,6 +40,7 @@ class Block(nn.Module):
         start = time.time()
         out = F.relu(out)
         relu1_time += (time.time() - start)
+
         start = time.time()
         out = self.conv2(out)
         conv2_time += (time.time() - start)
@@ -49,8 +50,7 @@ class Block(nn.Module):
         start = time.time()
         out = F.relu(out)
         relu2_time += (time.time() - start)
-        # out = F.relu(self.bn1(self.conv1(x)))
-        # out = F.relu(self.bn2(self.conv2(out)))
+
         return out
 
 
@@ -91,12 +91,14 @@ class MobileNet(nn.Module):
         start = time.time()
         out = F.relu(out)
         relu1_time += (time.time() - start)
-        # out = F.relu(self.bn1(self.conv1(x)))
+
         out = self.layers(out)
+
         start = time.time()
         out = F.avg_pool2d(out, 2)
         avg_pool_time += (time.time() - start)
         out = out.view(out.size(0), -1)
+
         start = time.time()
         out = self.linear(out)
         linear_time += (time.time() - start)

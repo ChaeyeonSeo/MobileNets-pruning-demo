@@ -1,12 +1,10 @@
 import numpy as np
 import pandas as pd
 import csv
-import time
 import torch
 import torch.nn as nn
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
-from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 
@@ -15,34 +13,33 @@ import torch_pruning as tp
 
 import models.mobilenetv1
 import models.mobilenetv2
-import models.mobilenetv3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Argument parser
 parser = argparse.ArgumentParser(description='Pruning MobileNet V1, V2, and V3')
 parser.add_argument('--batch_size', type=int, default=128, help='Number of samples per mini-batch')
-parser.add_argument('--finetune_epochs', type=int, default=100, help='Number of epochs to finetune')
-parser.add_argument('--model', type=str, default='mobilenetv1', help='mobilenetv1, mobilenetv2, or mobilenetv3')
-parser.add_argument('--prune', type=float, default=0.1, help='0.0, 0.05, ... , 0.9')
-parser.add_argument('--layer', type=str, default="one", help="one, two, three and all")
+parser.add_argument('--model', type=str, default='mobilenetv1', help='mobilenetv1, or mobilenetv2')
+parser.add_argument('--prune_amount', type=float, default=0.1, help='0.0, 0.05, ... , 0.9')
+parser.add_argument('--finetune_epochs', type=int, default=2, help='Number of epochs to finetune')
+parser.add_argument('--layer', type=str, default="all", help="one, two, three and all")
+parser.add_argument('--strategy', type=str, default="L1", help="L1, L2, and random")
 parser.add_argument('--mode', type=int, default=1, help="pruning: 1, measurement: 2")
 parser.add_argument('--seed', type=int, default=1, help="random seed")
-parser.add_argument('--strategy', type=str, default="L1", help="L1, L2, and random")
 args = parser.parse_args()
 
 batch_size = args.batch_size
-finetune_epochs = args.finetune_epochs
 model_name = args.model
-prune_val = args.prune
+prune_val = args.prune_amount
+finetune_epochs = args.finetune_epochs
 layer = args.layer
+strategy_name = args.strategy
 mode = args.mode
 seed = args.seed
-strategy_name = args.strategy
 
 print('model: ', model_name, ' layer: ', layer, ' prune_val: ', prune_val, ' strategy: ', strategy_name)
 
-# Model name: mobilenetv1, mobilenetv2, mobilenetv3
+# Model name: mobilenetv1, mobilenetv2
 # Layer: all, one, two
 # Pruning amount: 0.05 ~ 0.9
 # Fine-tuning epoch: 0 ~ 200
@@ -71,7 +68,6 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch
 model_names = {
     'mobilenetv1': models.mobilenetv1.MobileNet,
     'mobilenetv2': models.mobilenetv2.MobileNetV2,
-    'mobilenetv3': models.mobilenetv3.MobileNetV3,
 }
 
 
@@ -101,7 +97,10 @@ def model_size(model, count_zeros=True):
 
 model = model_names.get(model_name, models.mobilenetv1.MobileNet)()
 model = model.to(torch.device(device))
+
 # torchsummary.summary(model, (3, 32, 32))
+print("The number of parameters before pruning: ", model_size(model))
+print(model)
 
 # Define your loss and optimizer
 criterion = nn.CrossEntropyLoss()  # Softmax is internally computed.
@@ -183,25 +182,22 @@ def test(model, epoch):
 model = load_model(model)
 test(model, 0)
 
+#######################################################################################################################
 # Pruning
 model = model.to(torch.device('cpu'))
-# 1. setup strategy
-if strategy_name == 'L1':
-    strategy = tp.strategy.L1Strategy()
-elif strategy_name == 'L2':
-    strategy = tp.strategy.L2Strategy()
-else:
-    strategy = tp.strategy.RandomStrategy()
+# 1. Set up strategy
+strategy = tp.strategy.L1Strategy()
 
-# 2. build layer dependency for model
+# 2. Build layer dependency for model
 DG = tp.DependencyGraph()
 DG.build_dependency(model, example_inputs=torch.randn(1, 3, 32, 32))
 
 
 def prune_conv(conv, amount):
-    # 3. get a pruning plan from the dependency graph.
+    # 3. Get a pruning plan from the dependency graph.
     pruning_index = strategy(conv.weight, amount=amount)
     pruning_plan = DG.get_pruning_plan(conv, tp.prune_conv, pruning_index)
+    # 4. Execute this plan (prune the model)
     pruning_plan.exec()
 
 
@@ -210,17 +206,16 @@ def prune_bn(bn, amount):
     pruning_plan = DG.get_pruning_plan(bn, tp.prune_batchnorm, pruning_index)
     pruning_plan.exec()
 
-
 if model_name == 'mobilenetv1':
     if layer == 'all':
         prune_conv(model.conv1, amount=prune_val)
-        prune_bn(model.bn1, amount=prune_val)
+        # prune_bn(model.bn1, amount=prune_val)
         for m in model.modules():
             if isinstance(m, models.mobilenetv1.Block):
                 prune_conv(m.conv1, amount=prune_val)
-                prune_bn(m.bn1, amount=prune_val)
+                # prune_bn(m.bn1, amount=prune_val)
                 prune_conv(m.conv2, amount=prune_val)
-                prune_bn(m.bn2, amount=prune_val)
+                # prune_bn(m.bn2, amount=prune_val)
     elif layer == 'one':
         for m in model.modules():
             if isinstance(m, models.mobilenetv1.Block):
@@ -254,40 +249,15 @@ elif model_name == 'mobilenetv2':
             if isinstance(m, models.mobilenetv2.Block):
                 prune_conv(m.conv3, amount=prune_val)
 
-elif model_name == 'mobilenetv3':
-    if layer == 'all':
-        prune_conv(model.conv1, amount=prune_val)
-        prune_bn(model.bn1, amount=prune_val)
-        for m in model.modules():
-            if isinstance(m, models.mobilenetv3.Block):
-                prune_conv(m.conv1, amount=prune_val)
-                prune_bn(m.bn1, amount=prune_val)
-                prune_conv(m.conv2, amount=prune_val)
-                prune_bn(m.bn2, amount=prune_val)
-                prune_conv(m.conv3, amount=prune_val)
-                prune_bn(m.bn3, amount=prune_val)
-        prune_conv(model.conv2, amount=prune_val)
-        prune_bn(model.bn2, amount=prune_val)
-        prune_conv(model.conv3, amount=prune_val)
-    if layer == 'one':
-        for m in model.modules():
-            if isinstance(m, models.mobilenetv3.Block):
-                prune_conv(m.conv1, amount=prune_val)
-    elif layer == 'two':
-        for m in model.modules():
-            if isinstance(m, models.mobilenetv3.Block):
-                prune_conv(m.conv1, amount=prune_val)
-                prune_conv(m.conv3, amount=prune_val)
-    elif layer == 'three':
-        for m in model.modules():
-            if isinstance(m, models.mobilenetv3.Block):
-                prune_conv(m.conv3, amount=prune_val)
+#######################################################################################################################
 
+print("The number of parameters after pruning: ", model_size(model))
+print(model)
+model = model.to(torch.device(device))
 # torchsummary.summary(model, (3, 32, 32))
 
 # No fine-tuning after pruning
 max_acc = 0
-model = model.to(torch.device(device))
 first_acc = test(model, 0)
 accuracy.loc[0, 'Testing'] = first_acc
 torch.save(model, f"{model_path}/finetune_0.pt")
@@ -318,6 +288,3 @@ with open(f'{model_name}/{layer}/{strategy_name}/finetuning_best_accuracy.csv', 
     writer2 = csv.writer(f2)
     data = [prune_val, max_acc]
     writer2.writerow(data)
-
-# random_input = torch.randn(1, 3, 32, 32).to(device)
-# torch.onnx.export(model, random_input, f'checkpoints/{model_name}_{prune_val}_{finetune_epochs}.onnx', export_params=True, opset_version=10)

@@ -12,16 +12,15 @@ import pandas as pd
 
 from models.mobilenetv1 import MobileNet
 from models.mobilenetv2 import MobileNetV2
-from models.mobilenetv3 import MobileNetV3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Argument parser
 parser = argparse.ArgumentParser(description='Measure latency of MobileNet V1, V2, and V3')
 parser.add_argument('--batch_size', type=int, default=128, help='Number of samples per mini-batch')
-parser.add_argument('--model', type=str, default='vgg16', help='mobilenetv1, mobilenetv2, or mobilenetv3')
+parser.add_argument('--model', type=str, default='mobilenetv1', help='mobilenetv1, or mobilenetv2')
 parser.add_argument('--prune', type=float, default=0.0)
-parser.add_argument('--layer', type=str, default="one", help="one, two, three, and all")
+parser.add_argument('--layer', type=str, default="all", help="one, two, three, and all")
 parser.add_argument('--mode', type=int, default=2, help="pruning: 1, measurement: 2")
 parser.add_argument('--strategy', type=str, default="L1", help="L1, L2, and random")
 args = parser.parse_args()
@@ -60,7 +59,6 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch
 model_names = {
     'mobilenetv1': MobileNet,
     'mobilenetv2': MobileNetV2,
-    'mobilenetv3': MobileNetV3,
 }
 
 model = model_names.get(model_name, MobileNet)()
@@ -151,13 +149,6 @@ def test(model, epoch):
                 bn1_time, nl1_time, conv2_time, bn2_time, nl2_time, conv3_time, bn3_time, \
                 conv2_last_time, bn2_last_time, nl2_last_time, avg_pool_time, linear_time = model(images)
 
-            elif model_name == 'mobilenetv3':
-                outputs, conv1_first_time, bn1_first_time, nl1_first_time, conv1_time, \
-                bn1_time, nl1_time, conv2_time, bn2_time, nl2_time, se_avg_time, \
-                se_linear1_time, se_nl1_time, se_linear2_time, se_nl2_time, se_mult_time, \
-                conv3_time, bn3_time, conv2_last_time, bn2_last_time, nl2_last_time, \
-                avg_pool_time, conv3_last_time, nl3_last_time, linear_time = model(images)
-
             total_time += (time.time() - start_total)
             # Compute the loss
             loss = criterion(outputs, labels)
@@ -187,18 +178,6 @@ elif model_name == 'mobilenetv2':
              bn1_time, nl1_time, conv2_time, bn2_time, nl2_time, conv3_time, bn3_time,
              conv2_last_time, bn2_last_time, relu2_last_time, avg_pool_time, linear_time]
 
-elif model_name == 'mobilenetv3':  # mobilenetv3
-    layer_labels = ['Conv1_first', 'bn1_first', 'nl1_first', 'Conv1',
-                    'bn1', 'nl1', 'Conv2', 'bn2', 'nl2', 'se_avg', 'se_linear1',
-                    'se_nl1', 'se_linear2', 'se_nl1', 'se_mult', 'Conv3', 'bn3',
-                    'Conv2_last', 'bn2_last', 'nl2_last', 'Pooling',
-                    'Conv3_last', 'bn3_last', 'Linear']
-    sizes = [conv1_first_time, bn1_first_time, nl1_first_time, conv1_time,
-             bn1_time, nl1_time, conv2_time, bn2_time, nl2_time, se_avg_time,
-             se_linear1_time, se_nl1_time, se_linear2_time, se_nl2_time, se_mult_time,
-             conv3_time, bn3_time, conv2_last_time, bn2_last_time, nl2_last_time,
-             avg_pool_time, conv3_last_time, nl3_last_time, linear_time]
-
 df = pd.DataFrame(data={'layer': layer_labels, 'value': sizes})
 df = df.sort_values('value', ascending=False)
 
@@ -213,10 +192,11 @@ df2 = pd.concat([df2, new_row])
 
 fig1, ax1 = plt.subplots()
 # ax1.pie(df2['value'], labels=df2['layer'], autopct='%1.1f%%', startangle=180)
-ax1.pie(sizes, labels=layer_labels, autopct='%1.1f%%', startangle=0)
+ax1.pie(sizes, labels=layer_labels, autopct='%1.1f%%', startangle=180)
 ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 plt.title(f'Latency')
 plt.savefig(f'{model_path}/layers_{prune_val}.png')
+plt.show()
 
 # torchsummary.summary(model, (3, 32, 32))
 print(f'Total time: {total_time}s')
