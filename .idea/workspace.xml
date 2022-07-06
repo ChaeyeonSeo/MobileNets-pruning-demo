@@ -4,18 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b4325889-e1fd-432a-9222-baaaa33a6f1d" name="Changes" comment="v 0.0.1 - Add codes essential for demo">
-      <change afterPath="$PROJECT_DIR$/mobilenetv1/all/L1/prune_0.0/mobilenetv1.pt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mobilenetv2/all/L1/prune_0.0/mobilenetv2.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/MobileNets-pruning-demo.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/MobileNets-pruning-demo.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="b4325889-e1fd-432a-9222-baaaa33a6f1d" name="Changes" comment="v 0.0.2 - Update for demo">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/measure_latency.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure_latency.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/mobilenetv1.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mobilenetv1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/mobilenetv1_default.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mobilenetv1_default.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/mobilenetv3_default.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mobilenetv3_default.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/mobilenetv3_measure.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mobilenetv3_orig.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pruning.py" beforeDir="false" afterPath="$PROJECT_DIR$/pruning.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +32,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/student/MobileNets-pruning-demo",
+    "last_opened_file_path": "/home/student/MobileNets-pruning",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -174,7 +164,7 @@
       <workItem from="1656631676249" duration="632000" />
       <workItem from="1656633587546" duration="1251000" />
       <workItem from="1656685298442" duration="4249000" />
-      <workItem from="1657044542084" duration="985000" />
+      <workItem from="1657044542084" duration="2323000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.0.1 - Add codes essential for demo">
       <created>1656542355268</created>
@@ -183,7 +173,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656542355268</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="v 0.0.2 - Update for demo">
+      <created>1657050636866</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1657050636866</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -202,18 +199,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v 0.0.1 - Add codes essential for demo" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.0.1 - Add codes essential for demo" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pruning.py</url>
-          <line>218</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="v 0.0.2 - Update for demo" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.0.2 - Update for demo" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/MobileNets_pruning_demo$.coverage" NAME=" Coverage Results" MODIFIED="1656630416112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/models" />
