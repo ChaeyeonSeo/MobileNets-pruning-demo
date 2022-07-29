@@ -200,7 +200,6 @@ def prune_conv(conv, amount):
     # 4. Execute this plan (prune the model)
     pruning_plan.exec()
 
-
 def prune_bn(bn, amount):
     pruning_index = strategy(bn.weight, amount=amount)
     pruning_plan = DG.get_pruning_plan(bn, tp.prune_batchnorm, pruning_index)
